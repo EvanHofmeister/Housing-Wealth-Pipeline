@@ -1,5 +1,5 @@
 # DTC DE Final Porject - Housing Wealth Pipeline 
-Pipeline to estimate aggregate US housing wealth from Zillow Automated Valuation Model data (AVM) and American Community Survey Census data
+Pipeline to estimate aggregate US housing wealth from Zillow Automated Valuation Model data (AVM) and American Community Survey (ACS) Census data
 
 ## Problem Statement
 
@@ -36,14 +36,16 @@ Estimates of owner-occupied housing counts (i.e., single family homes, townhouse
 
 Several other files are necessary to correctly map the geographical fields together – these are sourced from several other API and URLs.
 
-To compute aggregate wealth, the US housing market is divided into segments by zip-code. The average value from Zillow’s AVM for each segment is multiplied by the number of own-use housing units derived from the nationally representative ACS:
+To compute aggregate wealth, the US housing market is divided into segments by zip-code. The average value from Zillow’s AVM for each segment is multiplied by the number of own-use housing units for each segment derived from the ACS. 
+
+For each zip-code z and property type p, the value of own-use housing at time t is estimated as:
 
 ```math
- \hat{V} (p,c,t) = NACS(p,c,t)\bar{V} Z(p,c,t) 
+ \hat{V} (p,z,t) = N^{ACS}(p,z,t)\bar{V} Z(p,z,t) 
 ```
 
-where $N^{ACS}(p, c, t)$ is an estimate of the number of properties intended for own use from the ACS
-and $\bar{V}(p, c, t)$ is the average AVM value for residential properties.
+where $N^{ACS}(p, z, t)$ is an estimate of the number of properties intended for own use from the ACS
+and $\bar{V}(p, z, t)$ is the average AVM value for residential properties.
 
 To compute the counts of properties intended for own use from the ACS in each county,
 all housing units reported in the survey are split into three mutually exclusive and exhaustive categories:
@@ -53,13 +55,13 @@ are not for sale or for rent.  The total number of properties intended for own u
 $(φ)$ of vacant properties that are not for sale or rent:
 
 ```math
-N^{ACS}(p, c, t) = N^{ACS}(p, c, t | own use) + N^{ACS}(p, c, t | vacant)φ(p, c, t)
+N^{ACS}(p, c, t) = N^{ACS}(p, z, t | own use) + N^{ACS}(p, z, t | vacant)φ(p, z, t)
 ```
 
 The share of vacant properties intended for personal use, $φ$, is the same as the share of occupied properties for own use so that:
 
 ```math
-φ(p, c, t) = \frac{N^{ACS}(p, c, t | own use)}{N^{ACS}(p, c, t | own use) + N^{ACS}(p, c, t | rental use)}
+φ(p, c, t) = \frac{N^{ACS}(p, z, t | own use)}{N^{ACS}(p, z, t | own use) + N^{ACS}(p, z, t | rental use)}
 ```
 
 This estimate is then multiplied by available historical zillow data where missing zillow values are imputed from the state average for each indicator. Note, to account for inflation the value estimates are divided by a chained price index sourced from FRED (see below for details on API). 
