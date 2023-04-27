@@ -38,7 +38,7 @@ Several other files are necessary to correctly map the geographical fields toget
 
 To compute aggregate wealth, the US housing market is divided into segments by zip-code. The average value from Zillow’s AVM for each segment is multiplied by the number of own-use housing units for each segment derived from the ACS. 
 
-For each zip-code z and property type p, the value of own-use housing at time t is estimated as:
+For each zip-code $z$ and property type $p$, the value of own-use housing at time $t$ is estimated as:
 
 ```math
  \hat{V} (p,z,t) = N^{ACS}(p,z,t)\bar{V} Z(p,z,t) 
