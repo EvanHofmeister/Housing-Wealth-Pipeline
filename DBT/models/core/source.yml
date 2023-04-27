@@ -1,0 +1,20 @@
+
+version: 2
+
+sources:
+    - name: staging
+
+      # For postgres:
+      database: ny-rides-evan
+
+      schema: avm_data
+
+      tables:
+        - name: stg_avm
+         # freshness:
+           # error_after: {count: 6, period: hour}
+
+models:
+    - name: core_avm_data
+      description: >
+        Table contains merged timeseries data from historical zillow data and american community survey data
