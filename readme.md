@@ -1,4 +1,4 @@
-# DTC DE Final Porject - Housing Wealth Pipeline 
+\# DTC DE Final Porject - Housing Wealth Pipeline 
 Pipeline to estimate aggregate US housing wealth from Zillow Automatic Valuation Model data (AVM) and Census data
 
 ## Problem Statement
@@ -39,7 +39,9 @@ Several other files are necessary to correctly map the geographical fields toget
 To compute aggregate wealth, the US housing market is divided into segments by zip-code. The average value from Zillow’s AVM for each segment is multiplied by the number of own-use housing units derived from the nationally representative ACS.
 
 
-Vˆ (p,c,t) = NACS(p,c,t)V¯ Z(p,c,t),
+```math
+$$ \hat{V} (p,c,t) = NACS(p,c,t)V¯ Z(p,c,t) $$
+```
 
 NACS(p,c,t) = NACS(p,c,t | own use)+NACS(p,c,t | vacant)φ(p,c,t).
 
