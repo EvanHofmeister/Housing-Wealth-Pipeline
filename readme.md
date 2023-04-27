@@ -40,7 +40,7 @@ To compute aggregate wealth, the US housing market is divided into segments by z
 
 
 ```math
-$$ \hat{V} (p,c,t) = NACS(p,c,t)V¯ Z(p,c,t) $$
+ \hat{V} (p,c,t) = NACS(p,c,t)\bar{V} Z(p,c,t) 
 ```
 
 NACS(p,c,t) = NACS(p,c,t | own use)+NACS(p,c,t | vacant)φ(p,c,t).
