@@ -1,4 +1,4 @@
-\# DTC DE Final Porject - Housing Wealth Pipeline 
+# DTC DE Final Porject - Housing Wealth Pipeline 
 Pipeline to estimate aggregate US housing wealth from Zillow Automatic Valuation Model data (AVM) and Census data
 
 ## Problem Statement
