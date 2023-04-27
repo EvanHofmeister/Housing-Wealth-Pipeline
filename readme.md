@@ -16,7 +16,7 @@ NACS(p,c,t) = NACS(p,c,t | own use)+NACS(p,c,t | vacant)φ(p,c,t).
 
 ## Data Pipeline
 
-![images](Pipeline.png)
+![/images](Pipeline.png)
 
 
 ### Terraform 
