@@ -16,7 +16,7 @@ NACS(p,c,t) = NACS(p,c,t | own use)+NACS(p,c,t | vacant)φ(p,c,t).
 
 ## Data Pipeline
 
-![Pipeline](images\Pipeline.png)
+![Pipeline](images/Pipeline.png)
 
 
 ### Terraform 
@@ -46,7 +46,7 @@ Google Looker is a cloud-based business intelligence and analytics platform that
 
  [**Link to the dashboard:**](https://lookerstudio.google.com/reporting/1f5246de-10f4-409b-9dea-b6f6e062d034/page/hT9ND)
 
-![Dashboard](images\Dashboard.png)
+![Dashboard](images/Dashboard.png)
 
 
 
