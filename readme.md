@@ -55,13 +55,13 @@ are not for sale or for rent.  The total number of properties intended for own u
 $(φ)$ of vacant properties that are not for sale or rent:
 
 ```math
-N^{ACS}(p, c, t) = N^{ACS}(p, z, t | own use) + N^{ACS}(p, z, t | vacant)φ(p, z, t)
+N^{ACS}(p, z, t) = N^{ACS}(p, z, t | own use) + N^{ACS}(p, z, t | vacant)φ(p, z, t)
 ```
 
 The share of vacant properties intended for personal use, $φ$, is the same as the share of occupied properties for own use so that:
 
 ```math
-φ(p, c, t) = \frac{N^{ACS}(p, z, t | own use)}{N^{ACS}(p, z, t | own use) + N^{ACS}(p, z, t | rental use)}
+φ(p, z, t) = \frac{N^{ACS}(p, z, t | own use)}{N^{ACS}(p, z, t | own use) + N^{ACS}(p, z, t | rental use)}
 ```
 
 This estimate is then multiplied by available historical zillow data where missing zillow values are imputed from the state average for each indicator. Note, to account for inflation the value estimates are divided by a chained price index sourced from FRED (see below for details on API). 
