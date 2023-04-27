@@ -7,7 +7,7 @@ variable "project" {
 }
 
 variable "region" {
-  default = "europe-west3"
+  default = "<SET REGION BASED ON CLOSEST LOCATION>"
   type = string
 }
 
