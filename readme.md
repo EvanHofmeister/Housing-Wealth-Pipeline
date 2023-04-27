@@ -38,12 +38,29 @@ Several other files are necessary to correctly map the geographical fields toget
 
 To compute aggregate wealth, the US housing market is divided into segments by zip-code. The average value from Zillow’s AVM for each segment is multiplied by the number of own-use housing units derived from the nationally representative ACS.
 
-
 ```math
  \hat{V} (p,c,t) = NACS(p,c,t)\bar{V} Z(p,c,t) 
 ```
 
-NACS(p,c,t) = N^{ACS}(p,c,t | own use)+N^{ACS}(p,c,t | vacant)φ(p,c,t).
+where $N^{ACS}(p, c, t)$ is an estimate of the number of properties intended for own use from the ACS
+and $\bar{V}(p, c, t)$ is the average AVM value for residential properties.
+
+To compute the counts of properties intended for own use from the ACS in each county,
+all housing units reported in the survey are split into three mutually exclusive and exhaustive categories:
+units that are unambiguously for own use (owner-occupied plus vacant-for-sale), units that are
+unambiguously for rental use (renter-occupied plus vacant-for-rent), and units that are vacant but
+are not for sale or for rent.  The total number of properties intended for own use as the sum of units intended for own use plus a share
+$(φ)$ of vacant properties that are not for sale or rent:
+
+```math
+N^{ACS}(p, c, t) = N^{ACS}(p, c, t | own use) + N^{ACS}(p, c, t | vacant)φ(p, c, t)
+```
+
+The share of vacant properties that are intended for personal use, $φ$, is the same as the share of occupied properties for own use so that:
+
+```math
+φ(p, c, t) = \frac{N^{ACS}(p, c, t | own use)}{N^{ACS}(p, c, t | own use) + N^{ACS}(p, c, t | rental use)}
+```
 
 ## Data Pipeline
 
