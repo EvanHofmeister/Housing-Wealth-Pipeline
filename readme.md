@@ -150,6 +150,8 @@ Prefect flows can be setup with the below code
 
 `cd ~/Housing-Wealth-Pipeline`
 
+`prefect orion start`
+
 `prefect deployment build prefect/<Prefect File> -n avm -o prefect/<Prefect File>.yaml`
 
 `prefect deployment apply prefect/<Prefect File>.yaml`
