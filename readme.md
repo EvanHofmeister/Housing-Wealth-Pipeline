@@ -62,7 +62,7 @@ The share of vacant properties that are intended for personal use, $φ$, is the 
 φ(p, c, t) = \frac{N^{ACS}(p, c, t | own use)}{N^{ACS}(p, c, t | own use) + N^{ACS}(p, c, t | rental use)}
 ```
 
-This estimate is then multiplied by available historical zillow data where missing zillow values are imputed from the state average for each indicator.
+This estimate is then multiplied by available historical zillow data where missing zillow values are imputed from the state average for each indicator. Note, to account for inflation the value estimates are divided by a chained price index sourced from FRED (see below for details on API). 
 
 ## Data Pipeline
 
