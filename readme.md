@@ -113,3 +113,7 @@ Prefect flows can be setup with the below code
 * run `dbt build`
 
 ### Connect to Looker
+
+* Use the BigQuery connector to connect to the data warehouse
+* It's recommended that you create a field to provide Geo data in a format Looker expects
+  * i.e. for zip-code create a new field with the following formula `CONCAT(zip_code, ", ", "United States")`
