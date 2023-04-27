@@ -5,7 +5,7 @@ sources:
     - name: staging
 
       # For postgres:
-      database: ny-rides-evan
+      database: <DATABASE NAME>
 
       schema: avm_data
 
