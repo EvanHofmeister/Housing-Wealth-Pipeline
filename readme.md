@@ -170,7 +170,6 @@ Now set the gcloud environment variable by running the following:
 
 `export GOOGLE_APPLICATION_CREDENTIALS=~/.config/gcloud/$gcloud_credentials.json`
 
-
 Run the below lines of code to start Terraform: 
 
 `cd ~/Housing-Wealth-Pipeline/terraform`
@@ -229,11 +228,33 @@ After running the prefect flows, partitioning the tables, and running DBT, you s
 
 ![BQ_Tables](images/Big_Query_Tables.png)
 
+You can also run DBT cloud jobs from prefect:
+* First navigate to DBT Cloud -> Deploy -> Jobs -> Create New Job 
+  * Add commands (e.g., `dbt build`)
+  * Add trigger/schedle
+  * Copy job_id
+
+Then in dbt, a flow can be created to run the dbt job:
+
+``` python
+from prefect import flow
+
+from prefect_dbt.cloud import DbtCloudCredentials
+from prefect_dbt.cloud.jobs import trigger_dbt_cloud_job_run_and_wait_for_completion
+
+
+@flow
+def run_dbt_job_example():
+    trigger_dbt_cloud_job_run_and_wait_for_completion(
+        dbt_cloud_credentials=DbtCloudCredentials.load("default"), job_id=<DBT JOB ID>
+    )
+
+if __name__ == "__main__":
+    run_dbt_job_example()
+```
+
 ### Connect to Looker
 
 * Use the BigQuery connector to connect to the data warehouse
 * It's recommended that you create a field to provide Geo data in a format Looker expects
   * i.e. for zip-code create a new field with the following formula `CONCAT(zip_code, ", ", "United States")`
-
-
-`
