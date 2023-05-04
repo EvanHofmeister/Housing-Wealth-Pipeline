@@ -150,16 +150,11 @@ First, create a service account and associated access credentials by running the
 Next set the roles/access for this service account:
 
 `
-gcloud projects add-iam-policy-binding $gcloud_project_id \
---member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/viewer"
-gcloud projects add-iam-policy-binding $gcloud_project_id \
---member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/editor"
-gcloud projects add-iam-policy-binding $gcloud_project_id \
---member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/storage.admin"
-gcloud projects add-iam-policy-binding $gcloud_project_id \
---member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/storage.objectAdmin"
-gcloud projects add-iam-policy-binding $gcloud_project_id \
---member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/bigquery.admin"
+gcloud projects add-iam-policy-binding $gcloud_project_id --member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/viewer"
+gcloud projects add-iam-policy-binding $gcloud_project_id --member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/editor"
+gcloud projects add-iam-policy-binding $gcloud_project_id --member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/storage.admin"
+gcloud projects add-iam-policy-binding $gcloud_project_id --member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/storage.objectAdmin"
+gcloud projects add-iam-policy-binding $gcloud_project_id --member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/bigquery.admin"
 `
 
 Next, save down the credentials in a json file. all gcloud credentials are typically saved under `~/.config/gcloud`, so create this directory if it doesn't exist (e.g., `mkdir ~/.config/gcloud`)
