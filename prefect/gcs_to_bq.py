@@ -7,7 +7,6 @@ from prefect_gcp import GcpCredentials
 
 @task(name="Extract data from cloud storage", log_prints=True, retries=3)
 def extract_from_gcs() -> Path:
-    # gcs_path = f"data/housing_data.csv.parquet"
     gcs_path = Path(f"data/housing_data.parquet").as_posix()
     gcs_bucket_block_name = "housing-gcs"
     gcs_block = GcsBucket.load(gcs_bucket_block_name)
