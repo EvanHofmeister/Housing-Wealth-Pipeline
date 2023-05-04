@@ -96,12 +96,9 @@ dbt (data build tool) is an open-source data transformation and modeling tool th
 
 Google Looker is a cloud-based business intelligence and analytics platform that helps businesses make data-driven decisions by providing a comprehensive view of their data. Looker allows users to create and share interactive dashboards, reports, and visualizations using a simple, web-based interface.
 
- [**Link to the dashboard:**](https://lookerstudio.google.com/reporting/1f5246de-10f4-409b-9dea-b6f6e062d034/page/hT9ND)
+ [**Link to the dashboard:**](https://lookerstudio.google.com/reporting/94676c29-0680-4b5f-b5cf-7398334a1cb8)
 
 ![Dashboard](images/Dashboard.png)
-
-
-
 
 ## Project setup
 
@@ -134,7 +131,46 @@ These keys should be stored in the `configuration.conf` file
 
 ### Setup Terraform
 
-Run these 3 lines of code to start Terraform: 
+First login to the GCC SDK by running the following. A URL will open - follow the prompts:
+
+`gcloud auth login`
+
+First, create a service account and associated access credentials by running the below code in the terminal:
+
+`gcloud_project_id="housing-wealth"`
+
+`gcloud config set project $gcloud_project_id`
+
+`gcloud components update`
+
+`gcloud iam service-accounts create tf_credentials --display-name "tf_credentials"`
+
+Next set the roles/access for this service account:
+
+`gcloud projects add-iam-policy-binding $gcloud_project_id \
+--member="serviceAccount:tf_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/viewer"
+gcloud projects add-iam-policy-binding $gcloud_project_id \
+--member="serviceAccount:tf_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/editor"
+gcloud projects add-iam-policy-binding $gcloud_project_id \
+--member="serviceAccount:tf_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/storage.admin"
+gcloud projects add-iam-policy-binding $gcloud_project_id \
+--member="serviceAccount:tf_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/storage.objectAdmin"
+gcloud projects add-iam-policy-binding $gcloud_project_id \
+--member="serviceAccount:tf_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/bigquery.admin"
+`
+
+Next, save down the credentials in a json file. all gcloud credentials are typically saved under `~/.config/gcloud`, so create this directory if it doesn't exist (e.g., `mkdir ~/.config/gcloud`)
+
+`gcloud iam service-accounts keys create ~/.config/gcloud/tf_credentials.json --iam-account=tf_credentials@$gcloud_project_id.iam.gserviceaccount.com`
+
+Now set the gcloud environment variable by running the following: 
+
+`export GOOGLE_APPLICATION_CREDENTIALS=~/.config/gcloud/tf_credentials.json`
+
+
+Run the below lines of code to start Terraform: 
+
+`cd ~/Housing-Wealth-Pipeline/terraform`
 
 `terraform init`
 
@@ -148,20 +184,34 @@ If you ever need to dismantle the infrastructure, run the below code:
 
 ### Setup Prefect
 
+First, either use the CLI or Prefect GUI to set `GCS Credentials` and `GCS Bucket` for the infrastructure terraform just set up (use the `tf_credentials.json` file created in the last step)
 Prefect flows can be setup with the below code
 
 `cd ~/Housing-Wealth-Pipeline`
 
 `prefect orion start`
 
-`prefect deployment build prefect/<Prefect File> -n avm -o prefect/<Prefect File>.yaml`
+`prefect deployment build prefect/parent_flow.py:etl_parent_flow -n avm -o prefect/etl_parent_flow-deployment.yaml`
 
-`prefect deployment apply prefect/<Prefect File>.yaml`
+`prefect deployment apply prefect/etl_parent_flow-deployment.yaml`
 
 `prefect agent start -p 'default-agent-pool'`
 
+### Partition BigQuery table
+BigQuery tables can be partitioned by the index most likely to be queried which can speed up queries and reduce costs. See below for an example:
+
+Note, the Prefect-gcp library cannot currently partition or cluster BigQuery tables - to do this, you could run the below code.
+
+`
+CREATE OR REPLACE TABLE <Big Query Data Warehouse Name>.housing_data_partitioned 
+PARTITION BY DATE(date)
+CLUSTER BY zip_code AS (
+  SELECT * FROM <Big Query Data Warehouse Name>.housing_data)
+`
+
 ### Setup DBT
-* Create BigQuery credential.json file (note, make sure GCC server location aligns with the json file)
+* Navigte to DBT Cloud and set up a new project. 
+  * This will involve setting up the BigQuery credentials, for this you may reuse the `tf_credentials.json` created in the last step (note, make sure GCC server location aligns with the json file)
 * Create new DBT cloud project from repo
 * Create new branch
 * run `dbt build`
@@ -172,12 +222,5 @@ Prefect flows can be setup with the below code
 * It's recommended that you create a field to provide Geo data in a format Looker expects
   * i.e. for zip-code create a new field with the following formula `CONCAT(zip_code, ", ", "United States")`
 
-### Partition BigQuery table
 
-Note, BigQuery tables can be partitioned by the index most likely to be queried which can speed up queries and reduce costs. See below for an example:
-
-`CREATE OR REPLACE TABLE <PROJECT>.avm_data_Partitioned 
-PARTITION BY DATE(date)
-CLUSTER BY zip_code AS (
-  SELECT * FROM <PROJECT>.avm_data
-)`
+`

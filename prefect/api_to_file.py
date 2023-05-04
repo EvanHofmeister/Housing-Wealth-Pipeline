@@ -11,6 +11,7 @@ import sys
 import zipfile
 import time
 from pathlib import Path
+from prefect import flow, task
 
 # pyarrow
 # fastparquet
@@ -23,8 +24,6 @@ parser.read(f"{script_path}/{config_file}")
 
 """Define other input files"""
 msa_map_file = 'MSA_Map.txt'
-zip_map_file = '2010_Census_MSA_Map.txt'
-ruca_crosswalk_file = 'RUCA_CrossWalk_2010.xlsx'
 
 """Set configuration variables"""
 nasdaq_api_key = parser.get("nasdaq_config", "api_key")
@@ -32,74 +31,11 @@ hud_api_key = parser.get("hud_config", "api_key")
 fred_api_key = parser.get("fred_config", "api_key")
 census_api_key = parser.get("census_config", "api_key")
 
-"""Set api keys in libraries"""
-nasdaqdatalink.ApiConfig.api_key = nasdaq_api_key
-
-def main():
-
-    """Set indicators we'd like to query"""
-    list_indicator_id = ['ZCON', 'ZSFH']
-
-    """Set indicators we'd like to query"""
-    acs_5year = ['2013', '2017', '2021']
-
-    """Set FRED series used to adjust inflation - for this, I am using a chain CPI index though you could use an unchaned CPI index instead"""
-    fred_series = 'PCEPI'
-
-    """Set start date and end date for to query the historic data - note, if pulling the entire dataset, it will generate a 1gb file"""
-    start_date = '1-1-1980'
-    end_date = '1-1-2025'
-
-    """Query NASDAQ API, process data to create regions zip-code map"""
-    df_regions = extract_api_zip_structure()
-    df_regions_zip_w_crosswalk = merge_regions_zip_with_crosswalks(df_regions.loc[df_regions['region_type'] == 'zip'])
-
-    """Query NASDAQ API using the zip-code map to fetch historical data for each region-id and indicator_id"""
-    df_zip_historical = extract_api_historical(df_regions_zip_w_crosswalk.loc[(df_regions_zip_w_crosswalk.region_type == 'zip')], list_indicator_id, start_date, end_date)
-    df_zip_historical = extract_census_calculate_owner_occupied(df_zip_historical, 'zip', acs_5year)
-    df_zip_historical = df_zip_historical.reset_index()
-
-    """Reassign owner occupied counts based on indicator_id"""
-    df_zip_historical.loc[df_zip_historical.indicator_id=='ZCON', 'Total estimated single-family owner-occupied'] = None
-    df_zip_historical.loc[df_zip_historical.indicator_id=='ZSFH', 'Total estimated multi-family owner-occupied'] = None
-
-    """Calculated percent change"""
-    df_zip_historical = calculate_percent_change(df_zip_historical)
-
-    """Assign state region"""
-    df_zip_historical = assign_region_from_state(df_zip_historical)
-
-    """Query FRED API to fetch Chained CPI index"""
-    PCEPI_series = fetch_fred_series(fred_series)
-    PCEPI_series['date'] = pd.to_datetime(PCEPI_series.date)
-    PCEPI_series = PCEPI_series.rename(columns={'value': 'chained_dollar_index'})
-    PCEPI_series['chained_dollar_index'] = pd.to_numeric(PCEPI_series.chained_dollar_index)/100
-    # Merge into dataframe
-    df_zip_historical = pd.merge_asof(df_zip_historical.sort_values(by=['date'], ascending=True),
-                            PCEPI_series[['date', 'chained_dollar_index']].sort_values(by=['date'], ascending=True), on='date',
-                            direction='nearest')
-
-    """Normalize data by scaling to chained index"""
-    df_zip_historical['value_inf_adj'] = df_zip_historical.value / df_zip_historical.chained_dollar_index
-
-    """Calculate final necessary fields to use in dashboard"""
-    df_zip_historical.loc[(df_zip_historical.indicator_id == 'ZSFH'), 'AVM_SF'] = df_zip_historical['value_inf_adj'] * df_zip_historical['Total estimated single-family owner-occupied']
-    df_zip_historical.loc[(df_zip_historical.indicator_id == 'ZCON'), 'AVM_MF'] = df_zip_historical['value_inf_adj'] * df_zip_historical['Total estimated multi-family owner-occupied']
-    df_zip_historical['AVM_SF'] = df_zip_historical['AVM_SF'].fillna(0)
-    df_zip_historical['AVM_MF'] = df_zip_historical['AVM_MF'].fillna(0)
-    df_zip_historical['AVM_Tot'] = df_zip_historical['AVM_SF'] + df_zip_historical['AVM_MF']
-
-    df_zip_historical.to_csv(r'df_zip_historical_temp_All_from_website_test.csv')
-    return df_zip_historical
-
-
-
-"""Define general functions"""
+@task(name="Define general functions", log_prints=True, retries=3)
 def weighted_average(df, values, weights):
     return sum(df[weights] * df[values]) / df[weights].sum()
 
-
-"""Query zillow region ID per zip from the NASDAQ API"""
+@task(name="Query zillow region ID per zip from the NASDAQ API", log_prints=True, retries=3)
 def extract_api_zip_structure():
     try:
         df_ind = nasdaqdatalink.get_table("ZILLOW/INDICATORS", paginate=True)
@@ -168,7 +104,6 @@ def extract_api_zip_structure():
         # delineate region attributes for metro region level
         df_regions.loc[df_regions.region_type == 'metro', 'metro'] = df_regions.apply(lambda x: check_metro_in_str_metro(x['region']), axis=1)
         df_regions.loc[df_regions.region_type == 'metro', 'state'] = df_regions.apply(lambda x: check_state_in_str_metro(x['region']), axis=1)
-        df_regions.to_excel(r'df_regions.xlsx')
 
         return df_regions
 
@@ -176,7 +111,7 @@ def extract_api_zip_structure():
         print(f"Error processing api zip mapping. Error {e}")
         sys.exit(1)
 
-"""Query HUD zip/CBSA crosswalk and merge with Nasdaq zip level region map"""
+@task(name="Query HUD zip/CBSA crosswalk and merge with Nasdaq zip level region map", log_prints=True, retries=3)
 def extract_hud_zip_crosswalk(input_param):
     """
     HUD crosswalk input parameter
@@ -207,7 +142,6 @@ def extract_hud_zip_crosswalk(input_param):
             hud_zip_crosswalk = pd.DataFrame(response.json()["data"]["results"])
             # Keep duplicate ZIP/CBSA mapping with largest 'total ratio'
             hud_zip_crosswalk = hud_zip_crosswalk.sort_values(['tot_ratio']).drop_duplicates(['zip'], keep='last')
-            hud_zip_crosswalk.to_excel(f'hud_zip_crosswalk_{input_param}.xlsx')
 
         return hud_zip_crosswalk
 
@@ -215,7 +149,7 @@ def extract_hud_zip_crosswalk(input_param):
         print(f"Error fetching hud crosswalk. Error {e}")
         sys.exit(1)
 
-"""Merge in CBSA code/name crosswalk"""
+@task(name="Merge in CBSA code/name crosswalk", log_prints=True, retries=3)
 def extract_cbsa_name_crosswalk():
     try:
         url = r'https://www2.census.gov/programs-surveys/metro-micro/geographies/reference-files/2020/delineation-files/list1_2020.xls'
@@ -230,9 +164,7 @@ def extract_cbsa_name_crosswalk():
         print(f"Error fetching cbsa crosswalk. Error {e}")
         sys.exit(1)
 
-
-
-"""Merge in Census FIPS code/name crosswalk"""
+@task(name="Merge in Census FIPS code/name crosswalk", log_prints=True, retries=3)
 def extract_fips_name_crosswalk():
     try:
         url = r'https://www2.census.gov/geo/docs/reference/codes/files/national_county.txt'
@@ -259,7 +191,7 @@ def extract_fips_name_crosswalk():
         print(f"Error extracting fips crosswalk. Error {e}")
         sys.exit(1)
 
-"""Merge in RUCA code/name crosswalk"""
+@task(name="Merge in RUCA code/name crosswalk", log_prints=True, retries=3)
 def extract_ruca_code_crosswalk():
     try:
         url = r'https://www.ers.usda.gov/webdocs/DataFiles/53241/RUCA2010zipcode.xlsx?v=29.5'
@@ -273,7 +205,7 @@ def extract_ruca_code_crosswalk():
         print(f"Error fetching ruca crosswalk. Error {e}")
         sys.exit(1)
 
-"""load Metro map - narrows number of metros to query NASDAQ historic data for"""
+@task(name="load Metro map - narrows number of metros to query NASDAQ historic data for", log_prints=True, retries=3)
 def load_msa_map():
     try:
         msa_map = pd.read_csv(f'{script_path}/{msa_map_file}', sep="	", encoding="utf-8")
@@ -283,17 +215,17 @@ def load_msa_map():
         print(f"Error reading msa map . Error {e}")
         sys.exit(1)
 
-"""Merge regions_zip with crosswalk files"""
+@task(name="Merge regions_zip with crosswalk files", log_prints=True, retries=3)
 def merge_regions_zip_with_crosswalks(df_regions_zip):
     try:
 
         # Load crosswalk inputs
-        hud_cbsa_zip_crosswalk = extract_hud_zip_crosswalk(3)
-        cbsa_name_crosswalk = extract_cbsa_name_crosswalk()
-        hud_county_zip_crosswalk = extract_hud_zip_crosswalk(2)
-        fips_name_crosswalk = extract_fips_name_crosswalk()
-        msa_map = load_msa_map()
-        ruca_code_crosswalk = extract_ruca_code_crosswalk()
+        hud_cbsa_zip_crosswalk = extract_hud_zip_crosswalk.fn(3)
+        cbsa_name_crosswalk = extract_cbsa_name_crosswalk.fn()
+        hud_county_zip_crosswalk = extract_hud_zip_crosswalk.fn(2)
+        fips_name_crosswalk = extract_fips_name_crosswalk.fn()
+        msa_map = load_msa_map.fn()
+        ruca_code_crosswalk = extract_ruca_code_crosswalk.fn()
 
         # merge census cbsa and fips crosswalks
         cbsa_df = hud_cbsa_zip_crosswalk.merge(cbsa_name_crosswalk, how='left', left_on='geoid', right_on='CBSA Code')
@@ -333,18 +265,15 @@ def merge_regions_zip_with_crosswalks(df_regions_zip):
         print(f"Error merging zip regions map with crosswalk. Error {e}")
         sys.exit(1)
 
-"""Query NASDAQ API for historical region level data for specific indicators"""
-"""Note, if request is too large, data is sourced using from AWS S3 bucket using hyperlink and beautiful soup"""
+@task(name="Query NASDAQ API for historical region level data for specific indicators", log_prints=True, retries=3)
 def extract_api_historical(df_regions, list_indicator_id, start_date, end_date):
+    """Note, if request is too large, data is sourced using from AWS S3 bucket using hyperlink and beautiful soup"""
     try:
         # Pull data from nasdaq
         df_historical = pd.DataFrame()
 
         # Chunk query to remain under Rest API return limits
         list_region_id = df_regions.region_id.values.tolist()
-
-        df_regions.to_csv('df_regions_CHECKPOINT.csv')
-
         if len(list_region_id) > 5000:
             if os.path.isfile('df_historical_bulk.csv'):
                 df_historical = pd.read_csv('df_historical_bulk.csv')
@@ -403,7 +332,7 @@ def extract_api_historical(df_regions, list_indicator_id, start_date, end_date):
         print(f"Unable fetching historical data from the api/aws bucket. Error: {e}")
         sys.exit(1)
 
-"""Calculate percent change"""
+@task(name="Calculate percent change", log_prints=True, retries=3)
 def calculate_percent_change(df):
     try:
         df = df.sort_values(by='date', ascending=True)
@@ -420,7 +349,7 @@ def calculate_percent_change(df):
         print(f"Error calculating the percent change. Error: {e}")
         sys.exit(1)
 
-"""Fetch data series from the FRED API"""
+@task(name="Fetch data series from the FRED API", log_prints=True, retries=3)
 def fetch_fred_series(series_id):
     try:
         endpoint = 'https://api.stlouisfed.org/fred/series/observations'
@@ -442,7 +371,7 @@ def fetch_fred_series(series_id):
         print(f"Error fetching FRED series. Error: {e}")
         sys.exit(1)
 
-"""Assign region from state"""
+@task(name="Assign region from state", log_prints=True, retries=3)
 def assign_region_from_state(df):
     try:
         ### Assign Regions
@@ -508,7 +437,16 @@ def assign_region_from_state(df):
         print(f"Error Assigning region from state. Error: {e}")
         sys.exit(1)
 
-"""Extract American Community Survey Occupancy data from the Census API"""
+@task(name="Write DataFrame locally as parquet", log_prints=True, retries=3)
+def write_local(df: pd.DataFrame) -> Path:
+    path = Path(f"data/housing_data.parquet")
+    if not path.parent.is_dir():
+        path.parent.mkdir(parents=True)
+    path = Path(path).as_posix()
+    df.to_parquet(path, compression="gzip")
+    print(f"data saved to file: {path}")
+
+@task(name= "Extract American Community Survey Occupancy data from the Census API", log_prints=True, retries=3)
 def extract_census_calculate_owner_occupied(df, region_type, acs_years):
     try:
 
@@ -686,7 +624,6 @@ def extract_census_calculate_owner_occupied(df, region_type, acs_years):
         df['date'] = pd.to_datetime(df.date)
 
         if region_type == 'zip':
-            df_AHS_Occupied_Units_merged.to_excel('df_AHS_Occupied_Units_zip.xlsx')
             df_AHS_Occupied_Units_merged['zip_code'] = df_AHS_Occupied_Units_merged.Geo_Name.str.split(' ').str[1]
             df.loc[df.date.isna(), 'date'] = pd.to_datetime('12/31/2021')
 
@@ -748,18 +685,14 @@ def extract_census_calculate_owner_occupied(df, region_type, acs_years):
             df = pd.concat([test_index, test_index_missing], axis=0)
 
         elif region_type == 'county':
-            df_AHS_Occupied_Units.to_excel('df_AHS_Occupied_county.xlsx')
             df_AHS_Occupied_Units['county'] = df_AHS_Occupied_Units['Geo_Name']
-            df_AHS_Occupied_Units.to_csv('df_AHS_Occupied_Units_tmp.csv')
             df = df.merge(df_AHS_Occupied_Units[['county',
                                                 'Total estimated single-family owner-occupied',
                                                 'Total estimated multi-family owner-occupied']],
                           how='left',
                           on='county')
         elif region_type == 'state':
-            df_AHS_Occupied_Units.to_excel('df_AHS_Occupied_state.xlsx')
             df_AHS_Occupied_Units['state'] = df_AHS_Occupied_Units['Geo_Name']
-            df_AHS_Occupied_Units.to_csv('df_AHS_Occupied_Units_tmp.csv')
             df = df.merge(df_AHS_Occupied_Units[['state',
                                                 'Total estimated single-family owner-occupied',
                                                 'Total estimated multi-family owner-occupied']],
@@ -774,5 +707,66 @@ def extract_census_calculate_owner_occupied(df, region_type, acs_years):
         print(f"Error fetching or processing Census/ACS data. Error: {e}")
         sys.exit(1)
 
+
+
+@flow(name="Main ETL script, query data from api, preprocess, and write to file")
+def etl_api_to_file_subflow():
+    """Set api keys in libraries"""
+    nasdaqdatalink.ApiConfig.api_key = nasdaq_api_key
+
+    """Set indicators we'd like to query"""
+    list_indicator_id = ['ZCON', 'ZSFH']
+
+    """Set indicators we'd like to query"""
+    acs_5year = ['2013', '2017', '2021']
+
+    """Set FRED series used to adjust inflation - for this, I am using a chain CPI index though you could use an unchaned CPI index instead"""
+    fred_series = 'PCEPI'
+
+    """Set start date and end date for to query the historic data - note, if pulling the entire dataset, it will generate a 1gb file"""
+    start_date = '1-1-1980'
+    end_date = '1-1-2025'
+
+    """Query NASDAQ API, process data to create regions zip-code map"""
+    df_regions = extract_api_zip_structure()
+    df_regions_zip_w_crosswalk = merge_regions_zip_with_crosswalks(df_regions.loc[df_regions['region_type'] == 'zip'])
+
+    """Query NASDAQ API using the zip-code map to fetch historical data for each region-id and indicator_id"""
+    df_zip_historical = extract_api_historical(df_regions_zip_w_crosswalk.loc[(df_regions_zip_w_crosswalk.region_type == 'zip')], list_indicator_id, start_date, end_date)
+    df_zip_historical = extract_census_calculate_owner_occupied(df_zip_historical, 'zip', acs_5year)
+    df_zip_historical = df_zip_historical.reset_index()
+
+    """Reassign owner occupied counts based on indicator_id"""
+    df_zip_historical.loc[df_zip_historical.indicator_id=='ZCON', 'Total estimated single-family owner-occupied'] = None
+    df_zip_historical.loc[df_zip_historical.indicator_id=='ZSFH', 'Total estimated multi-family owner-occupied'] = None
+
+    """Calculated percent change"""
+    df_zip_historical = calculate_percent_change(df_zip_historical)
+
+    """Assign state region"""
+    df_zip_historical = assign_region_from_state(df_zip_historical)
+
+    """Query FRED API to fetch Chained CPI index"""
+    PCEPI_series = fetch_fred_series(fred_series)
+    PCEPI_series['date'] = pd.to_datetime(PCEPI_series.date)
+    PCEPI_series = PCEPI_series.rename(columns={'value': 'chained_dollar_index'})
+    PCEPI_series['chained_dollar_index'] = pd.to_numeric(PCEPI_series.chained_dollar_index)/100
+    # Merge into dataframe
+    df_zip_historical = pd.merge_asof(df_zip_historical.sort_values(by=['date'], ascending=True),
+                            PCEPI_series[['date', 'chained_dollar_index']].sort_values(by=['date'], ascending=True), on='date',
+                            direction='nearest')
+
+    """Normalize data by scaling to chained index"""
+    df_zip_historical['value_inf_adj'] = df_zip_historical.value / df_zip_historical.chained_dollar_index
+
+    """Calculate final necessary fields to use in dashboard"""
+    df_zip_historical.loc[(df_zip_historical.indicator_id == 'ZSFH'), 'AVM_SF'] = df_zip_historical['value_inf_adj'] * df_zip_historical['Total estimated single-family owner-occupied']
+    df_zip_historical.loc[(df_zip_historical.indicator_id == 'ZCON'), 'AVM_MF'] = df_zip_historical['value_inf_adj'] * df_zip_historical['Total estimated multi-family owner-occupied']
+    df_zip_historical['AVM_SF'] = df_zip_historical['AVM_SF'].fillna(0)
+    df_zip_historical['AVM_MF'] = df_zip_historical['AVM_MF'].fillna(0)
+    df_zip_historical['AVM_Tot'] = df_zip_historical['AVM_SF'] + df_zip_historical['AVM_MF']
+
+    write_local(df_zip_historical)
+
 if __name__ == "__main__":
-    main()
+    etl_api_to_file_subflow()

@@ -1,13 +1,13 @@
 locals {
-  data_lake_bucket = "avm-staging-bucket"
+  data_lake_bucket = "housing_dl"
 }
 
 variable "project" {
-  default = "<ENTER PROJECT NAME>"
+  default = "housing-wealth"
 }
 
 variable "region" {
-  default = "<SET REGION BASED ON CLOSEST LOCATION>"
+  default = "us-central1"
   type = string
 }
 
@@ -17,5 +17,5 @@ variable "storage_class" {
 
 variable "BQ_DATASET" {
   type = string
-  default = "avm_data"
+  default = "housing_bq"
 }

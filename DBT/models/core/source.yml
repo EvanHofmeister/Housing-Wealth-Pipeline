@@ -5,16 +5,16 @@ sources:
     - name: staging
 
       # For postgres:
-      database: <DATABASE NAME>
+      database: housing-wealth
 
-      schema: avm_data
+      schema: housing_bq
 
       tables:
-        - name: stg_avm
+        - name: stg_housing_wealth
          # freshness:
            # error_after: {count: 6, period: hour}
 
 models:
-    - name: core_avm_data
+    - name: core_housing_data
       description: >
         Table contains merged timeseries data from historical zillow data and american community survey data
