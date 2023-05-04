@@ -218,7 +218,7 @@ CLUSTER BY zip_code AS (
 
 ### Setup DBT
 * Navigte to DBT Cloud and set up a new project. 
-  * This will involve setting up the BigQuery credentials, for this you may reuse the `tf_credentials.json` created in the last step (note, make sure GCC server location aligns with the json file)
+  * This will involve setting up the BigQuery credentials, for this you may reuse the `tf-credentials.json` created in the last step (note, make sure GCC server location aligns with the json file)
 * Create new DBT cloud project from repo
 * Create new branch
 * run `dbt build`
