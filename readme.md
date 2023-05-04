@@ -209,10 +209,6 @@ CLUSTER BY zip_code AS (
   SELECT * FROM <Big Query Data Warehouse Name>.housing_data)
 `
 
-After running the prefect flows and partitioning the tables, you should see the below in BigQuery:
-
-![BQ_Tables](images/Big_Query_Tables.png)
-
 ### Setup DBT
 * Navigte to DBT Cloud and set up a new project. 
   * This will involve setting up the BigQuery credentials, for this you may reuse the `tf_credentials.json` created in the last step (note, make sure GCC server location aligns with the json file)
@@ -221,6 +217,10 @@ After running the prefect flows and partitioning the tables, you should see the 
 * run `dbt build`
 * Note, the state_region_map was already applied in the Prefect python flows, but I am implementing it here again to show how DBT can be used
   * Similarly, I calculate the MoM, QoQ, and YoY housing wealth % change in DBT to show how this can be done more efficiently in SQL compared with pandas
+
+After running the prefect flows, partitioning the tables, and running DBT, you should see the below in BigQuery:
+
+![BQ_Tables](images/Big_Query_Tables.png)
 
 ### Connect to Looker
 
