@@ -219,6 +219,8 @@ After running the prefect flows and partitioning the tables, you should see the 
 * Create new DBT cloud project from repo
 * Create new branch
 * run `dbt build`
+* Note, the state_region_map was already applied in the Prefect python flows, but I am implementing it here again to show how DBT can be used
+  * Similarly, I calculate the MoM, QoQ, and YoY housing wealth % change in DBT to show how this can be done more efficiently in SQL compared with pandas
 
 ### Connect to Looker
 
