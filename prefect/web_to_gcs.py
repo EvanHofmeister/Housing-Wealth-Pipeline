@@ -14,10 +14,7 @@ def write_to_gcs(path: Path) -> None:
 @flow(name="Main ETL script, write dataframe locally, and to the cloud")
 def etl_web_to_gcs_subflow() -> None:
     """The main ETL function"""
-    # df = api_to_file.etl_api_to_file_subflow()
-    # df.to_parquet(f"data/avm-data.csv.parquet", compression="gzip")
     path = Path(f"data/housing_data.parquet").as_posix()
-    # path = Path(f"~/prefect/data/housing_data.csv.parquet").as_posix()
     print(f"path={path}")
     write_to_gcs(path)
 
