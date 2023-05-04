@@ -197,7 +197,7 @@ Prefect flows can be setup with the below code
 
 `prefect agent start -p 'default-agent-pool'`
 
-This code could either be scheduled through the Prefect GUI or with a simple schedule set by CRON:
+This code could either be scheduled through the Prefect GUI or with a simple schedule set by CRON. The below is scheduled to run on the first of every month:
 
 `prefect deployment build prefect/parent_flow.py:etl_parent_flow -n avm_scheduled --cron "0 0 1 * *" -a`
 
