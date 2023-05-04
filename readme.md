@@ -187,9 +187,10 @@ If you ever need to dismantle the infrastructure, run the below code:
 ### Setup Prefect
 
 First, either use the CLI or Prefect GUI to set `GCS Credentials` and `GCS Bucket` for the infrastructure terraform just set up (use the `tf_credentials.json` file created in the last step)
-Prefect flows can be setup with the below code
 
 Note, feel free to change any of the inputs in the `etl_api_to_file_subflow()` includeing the `start_date` and `end_date` which will reduce the size of the output
+
+Prefect flows can be setup with the below code:
 
 `cd ~/Housing-Wealth-Pipeline`
 
