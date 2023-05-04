@@ -197,6 +197,10 @@ Prefect flows can be setup with the below code
 
 `prefect agent start -p 'default-agent-pool'`
 
+This code could either be scheduled through the Prefect GUI or with a simple schedule set by CRON:
+
+`prefect deployment build prefect/parent_flow.py:etl_parent_flow -n avm_scheduled --cron "0 0 1 * *" -a`
+
 ### Partition BigQuery table
 BigQuery tables can be partitioned by the index most likely to be queried which can speed up queries and reduce costs. See below for an example:
 
