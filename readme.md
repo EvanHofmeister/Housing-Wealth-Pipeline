@@ -139,33 +139,36 @@ First, create a service account and associated access credentials by running the
 
 `gcloud_project_id="housing-wealth"`
 
+`gcloud_credentials="tf-credentials"`
+
 `gcloud config set project $gcloud_project_id`
 
 `gcloud components update`
 
-`gcloud iam service-accounts create tf_credentials --display-name "tf_credentials"`
+`gcloud iam service-accounts create $gcloud_credentials --display-name $gcloud_credentials`
 
 Next set the roles/access for this service account:
 
-`gcloud projects add-iam-policy-binding $gcloud_project_id \
---member="serviceAccount:tf_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/viewer"
+`
 gcloud projects add-iam-policy-binding $gcloud_project_id \
---member="serviceAccount:tf_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/editor"
+--member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/viewer"
 gcloud projects add-iam-policy-binding $gcloud_project_id \
---member="serviceAccount:tf_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/storage.admin"
+--member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/editor"
 gcloud projects add-iam-policy-binding $gcloud_project_id \
---member="serviceAccount:tf_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/storage.objectAdmin"
+--member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/storage.admin"
 gcloud projects add-iam-policy-binding $gcloud_project_id \
---member="serviceAccount:tf_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/bigquery.admin"
+--member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/storage.objectAdmin"
+gcloud projects add-iam-policy-binding $gcloud_project_id \
+--member="serviceAccount:$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com" --role="roles/bigquery.admin"
 `
 
 Next, save down the credentials in a json file. all gcloud credentials are typically saved under `~/.config/gcloud`, so create this directory if it doesn't exist (e.g., `mkdir ~/.config/gcloud`)
 
-`gcloud iam service-accounts keys create ~/.config/gcloud/tf_credentials.json --iam-account=tf_credentials@$gcloud_project_id.iam.gserviceaccount.com`
+`gcloud iam service-accounts keys create ~/.config/gcloud/$gcloud_credentials.json --iam-account=$gcloud_credentials@$gcloud_project_id.iam.gserviceaccount.com`
 
 Now set the gcloud environment variable by running the following: 
 
-`export GOOGLE_APPLICATION_CREDENTIALS=~/.config/gcloud/tf_credentials.json`
+`export GOOGLE_APPLICATION_CREDENTIALS=~/.config/gcloud/$gcloud_credentials.json`
 
 
 Run the below lines of code to start Terraform: 
