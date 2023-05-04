@@ -210,6 +210,7 @@ CLUSTER BY zip_code AS (
 `
 
 After running the prefect flows and partitioning the tables, you should see the below in BigQuery:
+
 ![BQ_Tables](images/Big_Query_Tables.png)
 
 ### Setup DBT
